@@ -65,8 +65,8 @@ function build_html(Data){
     table_thread='<table width="700" class="table table-sortable" id="fileTable">'+
     '<thead>'+
     '<tr>'+
-    '<th><a href="sortFileName" id="FileNameButton">FileName</a></th>'+
-    '<th><a href="sortFileTime" id="FileTimeButton">FileTime</a></th>'+
+    '<th>FileName</th>'+
+    '<th>FileTime</th>'+
     '<th>size</th>'+
     '</tr>'+
     '<tr><th colspan="5"><hr></th></tr></thead>';
@@ -82,65 +82,17 @@ function store_html_file(store_dir,html){
         stream.end(html);
     })
 }
-function build_sort_fileName_html(){
-    const html=build_html(tableData.sort());
-    store_html_file(__dirname+"/sortName.html",html);
-}
-function build_reverse_sort_fileName_html(){
-    const html=build_html(tableData.sort().reverse());
-    store_html_file(__dirname+"/reverseSortName.html",html);
-}
 (async()=>{
-    await load_files_Status(load_dir,tableData);
-    const html=build_html(tableData);
-    await store_html_file(__dirname+"/home.html",html);
-    await build_sort_fileName_html()
-    await build_reverse_sort_fileName_html()
     app.get('/',function(req,res){
-            res.sendFile(path.join(__dirname,'/home.html'));
+            (async()=>{
+                tableData=[]
+                await load_files_Status(load_dir,tableData);
+                html=await build_html(tableData);
+                await store_html_file(__dirname+"/home.html",html);
+                await res.sendFile(path.join(__dirname,'/home.html'));
+            })()
+            
         });
-    app.get('/sortFileName',function(req,res){
-        if(sortFileNameFirstTime==true){
-            const fileName=__dirname+"/sortName.html"
-            res.sendFile(fileName,(err)=>{
-                if(err){
-                    next(err);
-                }
-                else{
-                    console.log("sent:",fileName);
-                }
-            });
-            sortFileNameFirstTime=false;
-        }
-        else{
-            fileNameAtoZ=!fileNameAtoZ
-            console.log(fileNameAtoZ);
-            if(fileNameAtoZ==true){
-                console.log("inTrueLoop");
-                const fileName=__dirname+"/sortName.html"
-                res.sendFile(fileName,(err)=>{
-                    if(err){
-                        next(err);
-                    }
-                    else{
-                        console.log("sent:",fileName);
-                    }
-                });
-            }
-            else{
-                console.log("inFalseLoop");
-                const fileName=__dirname+"/reverseSortName.html"
-                res.sendFile(fileName,(err)=>{
-                    if(err){
-                        next(err);
-                    }
-                    else{
-                        console.log("sent:",fileName);
-                    }
-                });
-            }
-        }
-    });
     for(let i=0;i<tableData.length;i++){
      app.get(`/${tableData[i].fileName}`,function(req,res){
         let filedir=load_dir+'/'+tableData[i].fileName;
