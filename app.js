@@ -3,13 +3,14 @@ const path=require('path');
 const fs=require('fs');
 const express=require('express');
 const converter=require('data-unit-converter');
+const chokidar=require('chokidar');
 let tableData=[]
 let fileNameAtoZ=true
 let sortFileNameFirstTime=true
 const app=express()
 const port = process.env.PORT || 8080;
 let load_dir="D:/project_5G/video_of_fell_down";
-
+const watcher=chokidar.watch(load_dir,{ignored: /^\./, persistent: true})
 function get_file_status(load_file_dir,fileName){
     return new Promise((resolve,reject)=>{
         fs.stat(load_file_dir+"/"+fileName,(err,stats)=>{
@@ -82,8 +83,16 @@ function store_html_file(store_dir,html){
         stream.end(html);
     })
 }
-(async()=>{
-    app.get('/',function(req,res){
+
+watcher
+    .on('add', function(pathName) {
+        // console.log('File', pathName, 'has been added');
+        // console.log(`FileName:${path.basename(pathName)}`)
+        app.get(`/${path.basename(pathName)}`,function(req,res){
+            let filedir=pathName;
+            res.download(filedir);
+        })
+        app.get('/',function(req,res){
             (async()=>{
                 tableData=[]
                 await load_files_Status(load_dir,tableData);
@@ -93,13 +102,12 @@ function store_html_file(store_dir,html){
             })()
             
         });
-    for(let i=0;i<tableData.length;i++){
-     app.get(`/${tableData[i].fileName}`,function(req,res){
-        let filedir=load_dir+'/'+tableData[i].fileName;
-        let name=tableData[i].fileName;
-        res.download(filedir,name);
-    }); 
-    }   
+    })
+    .on('change', function(path) {console.log('File', path, 'has been changed');})
+    .on('unlink', function(path) {console.log('File', path, 'has been removed');})
+    .on('error', function(error) {console.error('Error happened', error);});
+
+(async()=>{
     app.listen(port);
     console.log('Server started at http://localhost:' + port);
 })()
